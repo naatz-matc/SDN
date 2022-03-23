@@ -1,0 +1,152 @@
+
+
+import requests         #imported module to request information from websites and APIs
+import json             #imported module to allow handling of raw json data
+
+def sendAPICommand(newHostname):     #function that sends the new hostname to the selected device
+
+    
+    #Be sure to run feature nxapi first on Nexus Switch
+
+    switchuser='cisco'      #username needed to access the device
+    switchpassword='cisco'  #password needed to access the device
+
+    url='https://10.10.20.177/ins'                      #the management IP address for the device being accessed
+    myheaders={'content-type':'application/json-rpc'}
+    payload=[
+        {
+            "jsonrpc": "2.0",
+            "method": "cli",
+            "params": {
+              "cmd": "configure terminal",       
+              "version": 1
+            },
+            "id": 1
+        },
+        {
+            "jsonrpc": "2.0",
+            "method": "cli",
+            "params": {
+                "cmd": "hostname " + newHostname,    #changes the hostname of the device to the passed in variable
+                "version": 1
+            },
+            "id": 2
+        }
+    ]
+
+    '''
+    verify=False below is to accept untrusted certificate
+    '''
+                                                    #defining the response we get back from the nxapi
+    response = requests.post(url,data=json.dumps(payload), verify=False, headers=myheaders,auth=(switchuser,switchpassword)).json()
+
+
+def validateHostname(validationString):
+    validHost = False                            # creates a variable named 'validHost' and sets its value to the boolean value "True"
+    while validHost == False:                    # creates a 'while' loop that is used to check if the user input is valid
+        validHost = True
+        answer = input("Please enter a valid username: ")
+        if len(answer) == 0 or len(answer) >64:     # checks the length of 'answer'. If the length is equal to zero
+            print(validationString)                 # or greater than 64 characters, it sets 'validHost' value to "False"
+            validHost = False                       # prints out the 'validationString' message and remains in the 'while' loop
+                              
+        else:
+            if answer[0].isalpha() == False:   # checks if the first character in 'answer' is an alpha character. If the
+                print(validationString)        # first character is not an alpha character, it sets 'validHost' value to "False"
+                validHost = False              # prints out the 'validationString' message and remains in the 'while' loop
+
+            else:
+                
+                if len(answer.split()) >1:   # checks if 'answer' string has any spaces between any of its characters
+                    print(validationString)  # if there are any spaces, it sets 'validHost' value to "False"
+                    validHost = False        # prints out the 'validationString' message and remains in the 'while' loop
+
+                else:
+                    return answer            # returns the variable and its value to the main script
+        
+def validateIPAddress(validationString):
+    badIP = True                            # creates a variable named 'badIP' and sets its value to the boolean value "True"
+    while badIP == True:                    # creates a 'while' loop that is used to check if the user input is valid
+        badIP = False
+        ipString = input("Enter an IP address for the management interace: ")
+        ipList = ipString.split(".")        # asks the user to input an IP address, once entered it creates a list from the user
+                                            # input, splitting up the string into list elements by the "." in the IP address
+        if len(ipList) !=4:
+            print(validationString)         # checks if the length of 'ipList' is not equal to 4, if not we print out the
+            badIP = True                    # 'validationString' message, change 'badIP' back to "True" and remain in the 'while' loop
+
+        else:
+            ipNumCheck = ipString.replace(".","",4) # creates a new variable by replacing all the "." in 'ipString' with nothing
+            
+            if ipNumCheck.isnumeric() == False:     # checks if all the characters in 'ipNumCheck' are numerical, if not we print 
+                print(validationString)             # out the 'validationString' message, change 'badIP' back to "True" and remain
+                badIP = True                        # in the 'while' loop
+
+            else:
+                ipInteger = ([int(x) for x in ipList]) # creates a new variable that changes the date type in 'ipList' to integers
+                ipRange = range(256)                   # customized integer range variable
+                ipRange1 = range(253)                  # customized integer range variable
+                ipRange2 = range(255)                  # customized integer range variable
+    
+                if ipInteger[0] not in ipRange:     # checks if the first list element is in one of the specified range variables
+                    print(validationString)         # if not we print out the 'validationString' message, change 'badIP' back to 
+                    badIP = True                    # "True" and remain in the 'while' loop
+                
+                elif ipInteger[1] not in ipRange:   # checks if the second list element is in one of the specified range variables
+                    print(validationString)         # if not we print out the 'validationString' message, change 'badIP' back to
+                    badIP = True                    # "True" and remain in the 'while' loop
+
+                elif ipInteger[2] not in ipRange1:  # checks if the third list element is in one of the specified range variables
+                    print(validationString)         # if not we print out the 'validationString' message, change 'badIP' back to
+                    badIP = True                    # "True" and remain in the 'while' loop 
+
+                elif ipInteger[3] not in ipRange2 or ipInteger[3] ==0:
+                    print(validationString)         # checks if the fourth list element is in one of the specified range variables
+                    badIP = True                    # or if its value is equal to 0, if not in the specified ipRange variable or its
+                                                    # equal to 0 we print out the 'validationString' message, change 'badIP' back to
+                                                    # "True" and remain in the 'while' loop
+                else:
+                    return ipString                 # returns the variable "ipString" back to the main script
+                
+
+def incrementIPAddress(ipAddress):
+    ipList = ipAddress.split(".")       # splits the passed through 'ipAddress' string into list elements by the "." in
+                                        # the IP address and creates a new variable called 'ipList'
+                                        
+    ipList[2] = int(ipList[2])          # changes the third list element data type from a string to an integer
+    ipList[2] = ipList[2]+2             # adds 2 to the current integer value of the third list element
+    ipList[2] = str(ipList[2])          # changes the third list element data type from an integer to a string
+    modifiedIP = ""                     # creates an unassigned variable called 'modifiedIP'
+    for element in ipList:
+        modifiedIP = modifiedIP + element + "."     # a 'for' loop that for every list element in 'ipList' we are going to append each
+                                                    # element to the 'modifiedIP' variable along with a "."
+                                                    
+    modifiedIP = modifiedIP.rstrip(".")     # strips the "." after the last element that was entered to create a valid IP address
+
+    return modifiedIP                       # returns the variable "modifiedIP" back to the main script
+
+#########################
+# Start of Main Script
+#########################
+
+# creates a new hostname variable by running the validateHostname() function, which takes in a customized error message
+
+newHostname = validateHostname("Invalid hostname. Hostname must start with a letter, not be "
+                               "seperated by spaces and less than 64 characters")
+
+# creates a new IP address variable by running the validateIPAddress() function, which takes in a customized error message
+
+validIPAddress = validateIPAddress("IP address must be in the following format: x.x.y.z where x>= 0 and x <= 255, "
+                                   "y is between 0 and 252 and z >=1 and z<=254")
+
+# creates a changed IP address variable by running the incrementIPAddress() function, which takes in an IP address string variable
+
+changedIPAddress = incrementIPAddress(validIPAddress)
+
+# sends an API request to a device using the sendAPICommand() function, which changes a device's hostname to the passed through variable
+sendAPICommand(newHostname)
+
+# prints to the screen the devices new hostname and management IP address
+print(newHostname + " has a new management IP address of " + changedIPAddress)
+
+

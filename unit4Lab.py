@@ -1,0 +1,192 @@
+import requests         #imported module to request information from websites and APIs
+
+def shuffleDeck():      #requests a deck of cards from the DeckOfCards API
+        url = "https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1"  #address of the DeckOfCards API card deck request
+        payload={}
+        headers = {}
+        response = requests.request("GET", url, headers=headers, data=payload) #variable that stores the API response for card deck
+        cardDeck = response.json()                                             #turns the API response into a Python-workable dictionary
+        deckID = cardDeck["deck_id"]                                           #variable that contains the deck ID string from the API
+        
+        return deckID                                                          #returns the value of the variable 'deckID' to the main script
+
+def getInput(prompt,validationList):  #this function is set up to get a user input that is user defined and
+    answer = input(prompt)            #has a user generated list of acceptable answers to compare the input to
+    while answer not in validationList:
+        print("Invalid entry. The following are valid inputs: " + str(validationList))
+        answer = input(prompt)
+                                      #a 'while' loop checks the user input from the prompt against a list of valid inputs
+    return answer                     #if answer is in the valid list, the value of 'answer' is returned to the main script
+    
+
+def displayRules():                   #displays the rules of the game
+    print("Welcome to the classic card game of War! Here's how to play:")
+    print()
+    print("Enter the amount of cards that both you and the computer will draw from the deck. Once you draw your cards\n"
+          "you will add the total point value of your cards and compare it to the computer's total. Whoever has the higher\n"
+          "value is the winner! In case of a tie, both you and the computer will draw three cards from the deck and replay\n"
+          "until a winner is determined. Point values for ACE and face cards are as follows:")
+    print()
+    print("ACE = 1 point\n"
+          "JACK = 11 points\n"
+          "QUEEN = 12 points\n"
+          "KING = 13 points")
+    print()
+
+def drawCards(deckID,drawNumber):   #draws cards from a deck of cards from DeckOfCards API 
+    url = "https://deckofcardsapi.com/api/deck/" + deckID + "/draw/?count=" + drawNumber #makes an API request to DeckOfCards requesting
+    payload={}                                                                           #specified draw amount from the specified deckID
+    headers = {}
+    response = requests.request("GET", url, headers=headers, data=payload) #variable that stores the API response for which cards were drawn
+    drawnCards = response.json()                                           #turns the API response into a Python-workable dictionary
+
+    return drawnCards                                                      #returns the value of the variable 'drawnCards' to the main script
+
+#displays the players cards and the cards point total
+def displayCards(player,playerCards,playerPoints):
+    cardsPlayed = []                                              #creates an empty list to append enteries (elements) to
+    for card in playerCards["cards"]:                             #a 'for' loop that for each value in 'playerCards', the 'cardsPlayed' list
+        cardsPlayed.append(card["value"] + " of " + card["suit"]) #adds an 'value' from the dictionary 'playerCards' card["value"] and  
+                                                                  #card["suit"] keys                      
+    print(player + " drew the following cards:")
+    
+    for element in cardsPlayed:                                   #formatted output that displays the players card value and suit
+        print(element)
+
+    print("-" *20)
+    print("SCORE = " + str(playerPoints))                         #formatted output that displays the point total from the player cards
+    
+
+def cardValues(playerCards):                        #assesses the players cards and assigns them a score
+    totalScore = 0                                  #variable for tracking the score of the players cards
+    for element in playerCards["cards"]:
+        if element["value"] == "JACK":              #a 'for' loop that checks each card ["value"] for face cards 
+            totalScore = totalScore + 11            #and ACES. Depending on the type of card, this loop will add
+        elif element["value"] == "QUEEN":           #the corresponding value for that card to the 'totalScore'
+            totalScore = totalScore + 12            #variable
+        elif element["value"] == "KING":
+            totalScore = totalScore + 13
+        elif element["value"] == "ACE":
+            totalScore = totalScore + 1
+        else:                                               #for all non-face cards and ACES, this line will turn the string of their
+            totalScore = totalScore + int(element["value"]) #number into an integer and add it to the 'totalScore' variable
+            
+    return totalScore                                       #returns the value of 'totalScore' to the main script
+
+#reshuffles the card deck when available cards are close to gone
+def reshuffleDeck(deckID):                                  
+    shuffleURL = "https://deckofcardsapi.com/api/deck/" + deckID + "/shuffle/"  #makes an API request to DeckOfCards to have the current deck
+    payload={}                                                                  #reshuffled, then passes the API response to the variable                           
+    headers = {}                                                                #'shuffleResponse'.
+    shuffleResponse = requests.request("GET", shuffleURL, headers=headers, data=payload) 
+    shuffleDeck = shuffleResponse.json()                    #turns the API response into a workable Python Dictionary
+
+    return shuffleDeck                                      #returns the value of 'shuffleDeck' to the main script
+        
+
+    
+###################################
+# MAIN SCRIPT STARTS NOW!!!
+##################################
+
+cardDeckID = shuffleDeck()                      #gets a new deck of cards from the DeckofCardsAPI and shuffles them
+
+displayRules()                                  #explain the rules of the game
+
+playAnotherGame = True                          #control variable set for the play another game 'while' loop
+
+totalCardsPlayed = 0                            #control variable set for triggering an automatic deck reshuffle
+
+
+while playAnotherGame == True:                  #start of the play another game 'while' loop
+
+    cardsDrawn = getInput("How many cards do you want to draw? ", ["0","1","2","3","4","5"])        #asks user how many cards to draw
+
+    totalCardsPlayed = totalCardsPlayed + (int(cardsDrawn)*2)       #number of cards drawn added to deck reshuffle control variable
+    if totalCardsPlayed > 42:                                       #if total number of cards drawn exceeds threshold, an automatic
+        reshuffleDeck(cardDeckID)                                   #reshuffle of the deck is triggered and the counter is reset
+        print("deck reshuffled")
+        totalCardsPlayed = 0
+    
+    print() #line seperator for easier readability
+    
+    if cardsDrawn == "0":                       #if no cards are drawn the playAnotherGame control variable changes and ends the script
+        print("Thanks for playing, see you next time!")
+        playAnotherGame = False  
+
+    else:
+        tieGame = False                              #control varialbe used for 'while' loop in case of a tie game
+
+        userCards = drawCards(cardDeckID,cardsDrawn) #variable for users cards drawn from the deck
+
+        userPoints = cardValues(userCards)           #variable that contains the point values of the user drawn cards
+
+        displayCards("I",userCards,userPoints)       #outputs to the screen the users cards and point total
+    
+        print() #line seperator for easier readability
+    
+        computerCards = drawCards(cardDeckID,cardsDrawn)    #variable for computers cards drawn from the deck
+
+        computerPoints = cardValues(computerCards)          #variable that contains the point values of the computer drawn cards
+
+        displayCards("Jarvis",computerCards,computerPoints) #outputs to the screen the computers cards and point total
+
+        print() #line seperator for easier readability
+
+        if userPoints > computerPoints:                     #display message if user has more points
+            print("Congrats you beat Jarvis!")
+
+        if userPoints < computerPoints:                     #display message if computer has more points
+            print("Jarvis is victorious, better luck next time")
+
+        if userPoints == computerPoints:                    #display message if user and computer points are the same
+            print("The result is a tie, draw three more cards")
+            print() #line seperator for easier readability            
+            tieGame = True                                  #control variable for tie games set to 'True'
+            
+    #tie game 'while' loop. Same code block used below as when game started
+            
+            while tieGame == True:
+                    
+                totalCardsPlayed = totalCardsPlayed + int(cardsDrawn)       #number of cards drawn added to deck reshuffle control variable
+                if totalCardsPlayed > 42:                                   #if total number of cards drawn exceeds threshold, an automatic
+                    reshuffleDeck(cardDeckID)                               #reshuffle of the deck is triggered and the counter is reset
+                    print("deck reshuffled")
+                    totalCardsPlayed = 0
+                                
+                userCards = drawCards(cardDeckID,"3") #the specified three card draw in case of a tie
+
+                userPoints = cardValues(userCards)
+
+                displayCards("I",userCards,userPoints)
+    
+                print() #line seperator for easier readability
+    
+                computerCards = drawCards(cardDeckID,"3") #the specified three card draw in case of a tie
+
+                computerPoints = cardValues(computerCards)
+
+                displayCards("Jarvis",computerCards,computerPoints)
+
+                if userPoints > computerPoints:
+                    print("Congrats you beat Jarvis!")
+                    tieGame = False                         #exits the 'while' loop when a winner is decided
+                
+                if userPoints < computerPoints:
+                    print("Jarvis is victorious, better luck next time")
+                    tieGame = False                         #exits the 'while' loop when a winner is decided
+                
+                if userPoints == computerPoints:            #displays message and remains in the tie game 'while' loop
+                    print("The result is a tie, draw three more cards")
+                                
+        playAgain = getInput("Would you like to play again? ", ["y","Y","n","N"])       #asks user if they would like to play another game
+        print() #line seperator for easier readability
+        
+        if playAgain == "y" or playAgain == "Y":            #remains in the play another game loop and starts another game
+            playAnotherGame = True
+
+        if playAgain == "n" or playAgain == "N":            #exits the play another game loop and ends the script
+            print("Thanks for playing, see you next time!")
+            playAnotherGame = False
+        
+        
