@@ -284,7 +284,7 @@ while updateInterfaces == True:         # creates a 'while' loop that ask the us
         changedInterface = getInterface()   # runs the getInterface() function and stores the result in the variable 'changedInterface'
        
         changedIPAddress = validateIPAddress("***ERROR*** IP address must be in the following format: x.x.x.y where x>= 0 and x <= 255, "
-                                             "y >=1 and z<=254")    # runs the validateIPAddress() function with the specified error
+                                             "y >=1 and y<=254")    # runs the validateIPAddress() function with the specified error
                                                                     # message and stores the result in the variable 'changedIPAddress'
 
         changedCIDR = validateCIDR("***ERROR*** CIDR mask must begin with a '/' and be >= 1 and <=30")
